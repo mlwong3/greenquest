@@ -397,8 +397,7 @@
         { "flowerLanguage": "該植物的花語（如果有的話，沒有則回傳空字串）", "bloomingSeason": "該植物的花期或生長季節", "description": "簡短描述該植物的特徵、生長環境、用途等（約50-80字）" }`;
         
         const API_KEY = "CONFIG.API_KEY";
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2
-        .5-flash:generateContent?key=${API_KEY}`;
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
         const payload = { 
             contents: [{ role: "user", parts: [{ text: prompt }] }], 
             generationConfig: { responseMimeType: "application/json" } 
@@ -561,7 +560,7 @@
 
 { "plantName": "植物的中文名稱", "scientificName": "植物的拉丁學名（例如：Bauhinia × blakeana）", "plantType": "判斷植物屬於'非維管植物'、'蕨類植物'、'雙子葉植物'、'單子葉植物'、'裸子植物'或'非植物'", "funFact": "一段關於此植物的簡短有趣知識", "quiz": { "question": "根據知識點設計一個單選題", "options": ["選項A", "選項B", "正確答案C"], "correctAnswerIndex": 2 } }`;
         const API_KEY = "CONFIG.API_KEY";
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
         const payload = { contents: [{ role: "user", parts: [ { text: prompt }, { inlineData: { mimeType: "image/png", data: base64ImageData } } ] }], generationConfig: { responseMimeType: "application/json" } };
 
         try {
