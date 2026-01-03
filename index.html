@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>綠野尋蹤 Green Quest</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; touch-action: manipulation; }
@@ -395,7 +396,7 @@
         請提供以下資訊：
         { "flowerLanguage": "該植物的花語（如果有的話，沒有則回傳空字串）", "bloomingSeason": "該植物的花期或生長季節", "description": "簡短描述該植物的特徵、生長環境、用途等（約50-80字）" }`;
         
-        const API_KEY = "AIzaSyBbUPMAGFzkYhVkbdw4PshGSjhcZlM74YA";
+        const API_KEY = "CONFIG.API_KEY";
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2
         .5-flash:generateContent?key=${API_KEY}`;
         const payload = { 
@@ -559,7 +560,7 @@
 請確保學名（scientificName）準確無誤，並優先使用香港及華南地區的常見植物名稱。
 
 { "plantName": "植物的中文名稱", "scientificName": "植物的拉丁學名（例如：Bauhinia × blakeana）", "plantType": "判斷植物屬於'非維管植物'、'蕨類植物'、'雙子葉植物'、'單子葉植物'、'裸子植物'或'非植物'", "funFact": "一段關於此植物的簡短有趣知識", "quiz": { "question": "根據知識點設計一個單選題", "options": ["選項A", "選項B", "正確答案C"], "correctAnswerIndex": 2 } }`;
-        const API_KEY = "AIzaSyBbUPMAGFzkYhVkbdw4PshGSjhcZlM74YA";
+        const API_KEY = "CONFIG.API_KEY";
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
         const payload = { contents: [{ role: "user", parts: [ { text: prompt }, { inlineData: { mimeType: "image/png", data: base64ImageData } } ] }], generationConfig: { responseMimeType: "application/json" } };
 
