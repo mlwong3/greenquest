@@ -396,21 +396,31 @@
         請提供以下資訊：
         { "flowerLanguage": "該植物的花語（如果有的話，沒有則回傳空字串）", "bloomingSeason": "該植物的花期或生長季節", "description": "簡短描述該植物的特徵、生長環境、用途等（約50-80字）" }`;
         
-        // 修改前 (刪除這段)
-        // const API_KEY = "AIzaSyBSZv_...";
-        // const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
-        // 修改後 (請確保您有建立 config.js)
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${CONFIG.API_KEY}`;
-        const payload = { 
-            contents: [{ role: "user", parts: [{ text: prompt }] }], 
-            generationConfig: { responseMimeType: "application/json" } 
+        // Z.ai GLM 4.6V API
+        const API_URL = "https://api.z.ai/api/paas/v4/chat/completions";
+        const payload = {
+            model: "glm-4-vision",
+            messages: [
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            temperature: 1.0
         };
         
         try {
-            const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${CONFIG.API_KEY}`
+                },
+                body: JSON.stringify(payload)
+            });
             if (!response.ok) throw new Error(`API 請求失敗: ${response.status}`);
             const result = await response.json();
-            const detailData = JSON.parse(result.candidates[0].content.parts[0].text);
+            const detailData = JSON.parse(result.choices[0].message.content);
             
             const flowerLanguageHtml = detailData.flowerLanguage ? `<div class="mb-3"><p class="text-sm font-semibold text-emerald-700">花語</p><p class="text-sm text-gray-700">${detailData.flowerLanguage}</p></div>` : '';
             const scientificNameHtml = plant.scientificName ? `<p class="text-sm text-gray-500 italic mb-4">${plant.scientificName}</p>` : '';
@@ -563,30 +573,56 @@
     async function identifyPlantAndCreateQuiz(base64ImageData, imageSrc) {
         const prompt = `請辨識圖片中的植物，返回JSON格式：
 { "plantName": "植物中文名稱", "scientificName": "學名", "plantType": "非維管植物|蕨類植物|雙子葉植物|單子葉植物|裸子植物|非植物", "funFact": "有趣知識", "quiz": { "question": "問題", "options": ["A", "B", "C"], "correctAnswerIndex": 0 } }`;
-        // 修改前 (刪除這段)
-        // const API_KEY = "AIzaSyBSZv_...";
-        // const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
-
-        // 修改後
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${CONFIG.API_KEY}`;
-        const payload = { contents: [{ role: "user", parts: [ { text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64ImageData } } ] }], generationConfig: { responseMimeType: "application/json" } };
+        
+        // Z.ai GLM 4.6V API
+        const API_URL = "https://api.z.ai/api/paas/v4/chat/completions";
+        const payload = {
+            model: "glm-4-vision",
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: prompt
+                        },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: imageSrc
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature: 1.0
+        };
 
         try {
-            const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${CONFIG.API_KEY}`
+                },
+                body: JSON.stringify(payload)
+            });
+            
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`API 請求失敗: ${response.status}`, errorText);
                 throw new Error(`API 請求失敗: ${response.status}`);
             }
+            
             const result = await response.json();
             console.log('API Response:', result);
             
-            if (!result.candidates || !result.candidates[0] || !result.candidates[0].content || !result.candidates[0].content.parts || !result.candidates[0].content.parts[0]) {
+            if (!result.choices || !result.choices[0] || !result.choices[0].message || !result.choices[0].message.content) {
                 console.error('API 回應格式錯誤:', result);
                 throw new Error('API 回應格式不正確');
             }
             
-            const data = JSON.parse(result.candidates[0].content.parts[0].text);
+            const data = JSON.parse(result.choices[0].message.content);
             console.log('Parsed plant data:', data);
             
             const validTypes = ['非維管植物', '蕨類植物', '雙子葉植物', '單子葉植物', '裸子植物'];
