@@ -389,24 +389,24 @@
     }
     
     async function showPlantDetail(plant) {
-        const loadingContent = `<div class="text-6xl mb-4">🌿</div><h3 class="text-2xl font-bold mb-2">${plant.name}</h3><p class="text-sm text-gray-500 italic mb-4">${plant.scientificName || ''}</p><div class="animate-spin rounded-full h-12 w-12 border-b-4 border-emerald-500 mx-auto mb-4"></div><p class="text-gray-600">AI 正在生成詳細資訊 (GLM)...</p>`;
+        const loadingContent = `<div class="text-6xl mb-4">🌿</div><h3 class="text-2xl font-bold mb-2">${plant.name}</h3><p class="text-sm text-gray-500 italic mb-4">${plant.scientificName || ''}</p><div class="animate-spin rounded-full h-12 w-12 border-b-4 border-emerald-500 mx-auto mb-4"></div><p class="text-gray-600">AI 正在生成詳細資訊...</p>`;
         showModal(loadingContent);
         
-        const prompt = `請為以下植物生成詳細介紹，嚴格按照JSON格式回傳，不要包含任何額外的 Markdown 標記：
+        const prompt = `請為以下植物生成詳細介紹，嚴格按照JSON格式回傳，不要Markdown標記：
         植物名稱：${plant.name}
         ${plant.scientificName ? `學名：${plant.scientificName}` : ''}
         植物類型：${plant.type}
         
-        請提供以下資訊的 JSON 物件：
+        請提供以下資訊：
         { "flowerLanguage": "該植物的花語（如果有的話，沒有則回傳空字串）", "bloomingSeason": "該植物的花期或生長季節", "description": "簡短描述該植物的特徵、生長環境、用途等（約50-80字）" }`;
         
-        // Z.ai API 設定
-        const API_URL = "https://green-quest-proxy.mlwong3.workers.dev/";
+        // 1. 修改網址為您的 Cloudflare Worker
+        const API_URL = "https://green-quest-proxy.mlwong3.workers.dev/"; // 請確認這網址是您的 Worker
         
-        const payload = { 
-            model: "glm-4-flash", // 使用輕量快速版模型，如需更強能力可改用 "glm-4"
+        // 2. 修改 Payload 為 Zhipu/OpenAI 格式
+        const payload = {
+            model: "glm-4-flash", // 指定使用 GLM-4 Flash 模型
             messages: [
-                { role: "system", content: "你是一個植物學家。請只回傳純 JSON 格式，不要使用 Markdown 代碼塊。" },
                 { role: "user", content: prompt }
             ],
             temperature: 0.7
@@ -415,20 +415,18 @@
         try {
             const response = await fetch(API_URL, { 
                 method: 'POST', 
-                headers: { 
-                    'Content-Type': 'application/json',
-                    // 注意：因為 Key 已經在 Worker 裡設定了，這裡其實不需要 Authorization
-                    // 但如果您 Worker 寫法是轉發 Header，則保留；建議 Worker 裡設定 Key 比較安全
-                }, 
+                headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify(payload) 
             });
-
-            if (!response.ok) throw new Error(`API 請求失敗: ${response.status}`);
             
+            if (!response.ok) throw new Error(`API 請求失敗: ${response.status}`);
             const result = await response.json();
-            // GLM 回傳結構解析
-            const rawContent = result.choices[0].message.content;
-            const detailData = JSON.parse(cleanJSONResult(rawContent));
+            
+            // 3. 修改解析回應的方式 (OpenAI 格式)
+            let contentText = result.choices[0].message.content;
+            // 去除可能的 markdown json 標記
+            contentText = contentText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const detailData = JSON.parse(contentText);
             
             const flowerLanguageHtml = detailData.flowerLanguage ? `<div class="mb-3"><p class="text-sm font-semibold text-emerald-700">花語</p><p class="text-sm text-gray-700">${detailData.flowerLanguage}</p></div>` : '';
             const scientificNameHtml = plant.scientificName ? `<p class="text-sm text-gray-500 italic mb-4">${plant.scientificName}</p>` : '';
@@ -467,10 +465,10 @@
             showModal(content);
         } catch (error) {
             console.error("取得植物詳細資訊失敗:", error);
-            showModal(`<div class="text-6xl mb-4">😢</div><h3 class="text-2xl font-bold mb-2">無法載入詳細資訊</h3><p class="text-gray-600 mb-6">請稍後再試。(${error.message})</p><button class="modal-close-btn btn bg-emerald-500 text-white font-bold py-2 px-6 rounded-full">關閉</button>`);
+            showModal(`<div class="text-6xl mb-4">😢</div><h3 class="text-2xl font-bold mb-2">無法載入詳細資訊</h3><p class="text-gray-600 mb-6">請稍後再試。</p><button class="modal-close-btn btn bg-emerald-500 text-white font-bold py-2 px-6 rounded-full">關閉</button>`);
         }
     }
-
+    
     function renderShop() {
         const container = screens.shop;
         if (!container.querySelector('h2')) {
@@ -578,15 +576,16 @@
         await identifyPlantAndCreateQuiz(base64Data, imageSrc);
     }
 
-    async function identifyPlantAndCreateQuiz(base64ImageData, imageSrc) {
-        const prompt = `請辨識圖片中的植物，並嚴格按照 JSON 格式回傳，不要使用 Markdown 代碼塊：
-        { "plantName": "植物中文名稱", "scientificName": "學名", "plantType": "非維管植物|蕨類植物|雙子葉植物|單子葉植物|裸子植物|非植物", "funFact": "有趣知識", "quiz": { "question": "問題", "options": ["A", "B", "C"], "correctAnswerIndex": 0 } }`;
+async function identifyPlantAndCreateQuiz(base64ImageData, imageSrc) {
+        const prompt = `請辨識圖片中的植物，並嚴格按照JSON格式返回，不要包含Markdown標記或其他文字：
+{ "plantName": "植物中文名稱", "scientificName": "學名", "plantType": "非維管植物|蕨類植物|雙子葉植物|單子葉植物|裸子植物|非植物", "funFact": "有趣知識", "quiz": { "question": "問題", "options": ["A", "B", "C"], "correctAnswerIndex": 0 } }`;
 
-        // Z.ai API 設定
-        const API_URL = "https://green-quest-proxy.mlwong3.workers.dev/";
-        
+        // 1. 修改網址為您的 Cloudflare Worker
+        const API_URL = "https://green-quest-proxy.mlwong3.workers.dev/"; // 請確認這網址是您的 Worker
+
+        // 2. 修改 Payload 為 Zhipu/OpenAI 格式 (使用 glm-4v-flash 進行圖片辨識)
         const payload = {
-            model: "glm-4v", // 使用 GLM-4v 視覺模型
+            model: "glm-4v-flash", // 視覺模型
             messages: [
                 {
                     role: "user",
@@ -595,23 +594,19 @@
                         { 
                             type: "image_url", 
                             image_url: {
-                                url: `data:image/jpeg;base64,${base64ImageData}`
+                                url: base64ImageData // 這裡傳入 Base64 數據
                             }
                         }
                     ]
                 }
             ],
-            temperature: 0.5,
-            max_tokens: 1024
+            temperature: 0.1
         };
 
         try {
             const response = await fetch(API_URL, { 
                 method: 'POST', 
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${CONFIG.API_KEY}` // 確保 config.js 內的 API_KEY 是 Z.ai 的 Key
-                }, 
+                headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify(payload) 
             });
 
@@ -620,19 +615,20 @@
                 console.error(`API 請求失敗: ${response.status}`, errorText);
                 throw new Error(`API 請求失敗: ${response.status}`);
             }
-            
             const result = await response.json();
             console.log('API Response:', result);
             
+            // 3. 修改解析回應的方式 (OpenAI 格式)
             if (!result.choices || !result.choices[0] || !result.choices[0].message) {
                 console.error('API 回應格式錯誤:', result);
                 throw new Error('API 回應格式不正確');
             }
             
-            // 解析 GLM 回應
-            const rawContent = result.choices[0].message.content;
-            const data = JSON.parse(cleanJSONResult(rawContent));
+            let contentText = result.choices[0].message.content;
+            // 清理可能回傳的 Markdown 標記
+            contentText = contentText.replace(/```json/g, '').replace(/```/g, '').trim();
             
+            const data = JSON.parse(contentText);
             console.log('Parsed plant data:', data);
             
             const validTypes = ['非維管植物', '蕨類植物', '雙子葉植物', '單子葉植物', '裸子植物'];
@@ -680,9 +676,11 @@
             console.error("API 處理錯誤:", error);
             let errorMessage = "無法辨識圖片，請換一張試試。";
             if (error.message.includes("API 請求失敗")) {
-                errorMessage = "網路連線問題或 API Key 無效。";
-            } else if (error.message.includes("JSON")) {
-                errorMessage = "AI 回傳格式異常，請重試。";
+                errorMessage = "網路連線問題，請檢查網路後再試。";
+            } else if (error.message.includes("API 回應格式不正確")) {
+                errorMessage = "AI 服務暫時異常，請稍後再試。";
+            } else if (error instanceof SyntaxError) {
+                 errorMessage = "AI 回傳了無法理解的格式，請重試。";
             }
             showModal(`<div class="text-6xl mb-4">😢</div><h3 class="text-2xl font-bold mb-2">分析失敗</h3><p class="text-gray-600 mb-6">${errorMessage}</p><button class="modal-close-btn btn bg-emerald-500 text-white font-bold py-2 px-6 rounded-full">繼續</button>`, () => {
                 navigateTo('home');
