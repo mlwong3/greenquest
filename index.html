@@ -585,7 +585,7 @@ async function identifyPlantAndCreateQuiz(base64ImageData, imageSrc) {
 
         // 2. 修改 Payload 為 Zhipu/OpenAI 格式 (使用 glm-4v-flash 進行圖片辨識)
         const payload = {
-            model: "glm-4v-flash", // 視覺模型
+           model: "glm-4v", // 使用標準視覺模型
             messages: [
                 {
                     role: "user",
